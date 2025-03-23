@@ -493,3 +493,178 @@ recall_per_class = {k: recall[v].item() for k, v in dataset_test.class_to_idx.it
 - Gives insights into model weaknesses per class.
 
 ## Summary
+
+- from torchvision get `transforms`, use `transforms.Compose` to get a sequence of transformations such as to tensor, resize, rotate, autocontrast etc, basically data augmentation based on the data
+- use `ImageFolder` to make the dataset, with the given transforms
+- then use DataLoader on this dataset
+- for feature extracter
+    - add in convlolutional layer, describing number of output features maps, kernel size, padding
+    - then relu, elu etc. activation function
+    - then max pool layer to reduce dimensions
+    - add in more if needed
+    - flatten at the exploding
+- define self.classifier , maybe linear layer
+- forward pass has feature extractor followed by classifier
+- choose criterion (say Cross Entropy for multi class) and optimizer, similar training loop as before
+- load test data and choose metrics, eg precision recall.
+- you could do this per class, or micro, macro or weighted
+
+# Chapter 3: Handling Sequences and Recurrent Models in PyTorch
+
+## Sequential Data Concepts
+- Sequential data is **ordered in time or space**, where position matters.
+- Examples include: **Time Series**, **Text**, **Audio**, **Sensor data**.
+- The **key idea** is that current input depends on previous ones, so learning **temporal dependencies** is crucial.
+- We make sure there is no **look ahead bias**, so no random train-test split like typical applications, so split by time
+- need to select **sequence length** : no of data points in one training examples, eg making a prediction every 24 hours, so if every 15 minutes of data is available, consider sequence length of 96
+
+
+## Sequence Creation for Time Series
+We convert time series into input-output pairs where:
+- Input: last `N` steps (sequence length)
+- Output: next step (target for prediction)
+
+### Python Function
+```python
+def create_sequences(df, seq_length):
+    xs, ys = [], []
+    for i in range(len(df) - seq_length):
+        x = df.iloc[i:i+seq_length, 1]
+        y = df.iloc[i+seq_length, 1]
+        xs.append(x)
+        ys.append(y)
+    return np.array(xs), np.array(ys)
+```
+
+## Using TensorDataset for PyTorch Integration
+```python
+from torch.utils.data import TensorDataset
+import torch
+
+dataset_train = TensorDataset(
+    torch.from_numpy(X_train).float(),
+    torch.from_numpy(y_train).float()
+)
+```
+- `TensorDataset` wraps data into a structured format.
+- Combines features and labels, usable with `DataLoader`.
+
+## Building RNN Architecture
+
+- hidden state hi and input xi are the input at each step, giving output yi and next hidden state hi+1
+![](images/rnn.png)
+
+### RNN (Recurrent Neural Network)
+- seq to vec
+
+```python
+import torch.nn as nn
+
+class Net(nn.Module):
+    def __init__(self):
+        super().__init__()
+        self.rnn = nn.RNN(input_size=1, hidden_size=32, num_layers=2, batch_first=True)
+        self.fc = nn.Linear(32, 1)
+
+    def forward(self, x):
+        h0 = torch.zeros(2, x.size(0), 32)  # (num_layers, batch, hidden_size)
+        out, _ = self.rnn(x, h0)
+        return self.fc(out[:, -1, :])  # using last output timestep
+```
+
+- RNN memory cell has very short term memory so two Solutions
+    - LSTM cell
+    - GRU cell
+
+![](images/cells.png)
+
+- RNN not used much these days
+- GRU is less computationally expensive compared to LSTM
+- relative performance based on use case
+
+## LSTM Architecture (Long Short-Term Memory)
+
+```python
+class Net(nn.Module):
+    def __init__(self):
+        super().__init__()
+        self.lstm = nn.LSTM(input_size=1, hidden_size=32, num_layers=2, batch_first=True)
+        self.fc = nn.Linear(32, 1)
+
+    def forward(self, x):
+        h0 = torch.zeros(2, x.size(0), 32)
+        c0 = torch.zeros(2, x.size(0), 32)
+        out, _ = self.lstm(x, (h0, c0))
+        return self.fc(out[:, -1, :])
+```
+
+## GRU Architecture (Gated Recurrent Unit)
+```python
+class Net(nn.Module):
+    def __init__(self):
+        super().__init__()
+        self.gru = nn.GRU(input_size=1, hidden_size=32, num_layers=2, batch_first=True)
+        self.fc = nn.Linear(32, 1)
+
+    def forward(self, x):
+        h0 = torch.zeros(2, x.size(0), 32)
+        out, _ = self.gru(x, h0)
+        return self.fc(out[:, -1, :])
+```
+
+## Training Loop with MSE Loss
+
+- for this example of forecasting electricity consumption, use acc to regression task
+
+```python
+import torch.optim as optim
+import torch.nn as nn
+
+criterion = nn.MSELoss()
+optimizer = optim.Adam(net.parameters(), lr=0.001)
+
+for epoch in range(num_epochs):
+    for seqs, labels in dataloader_train:
+        seqs = seqs.view(seqs.size(0), seqs.size(1), 1)  # (batch, seq_len, 1)
+        outputs = net(seqs)
+        loss = criterion(outputs, labels)
+        optimizer.zero_grad()
+        loss.backward()
+        optimizer.step()
+```
+
+## Evaluation Loop with Metric
+
+- RNN layers expect `(batch size, seq_length, num_features)` 
+- for out example Dataloader gives you batch size, seq length, since only 1 feature
+- we expand
+- so need to squeeze here
+
+
+```python
+from torchmetrics import MeanSquaredError
+
+mse = MeanSquaredError()
+net.eval()
+with torch.no_grad():
+    for seqs, labels in test_loader:
+        seqs = seqs.view(seqs.size(0), seqs.size(1), 1)
+        outputs = net(seqs).squeeze() 
+        mse(outputs, labels)
+
+print(f"Test MSE: {mse.compute()}")
+```
+
+## Summary Table: Model Selection
+| Model | Memory Retention | Complexity | Use-case Example              |
+|-------|------------------|------------|-------------------------------|
+| RNN   | Short            | Low        | Quick prototyping, basics     |
+| LSTM  | Long             | High       | Text, Language Models         |
+| GRU   | Moderate         | Medium     | Time series, faster inference |
+
+## Best Practices Recap
+- Always reshape sequences before feeding to RNN/LSTM/GRU.
+- Use `.squeeze()` after output for loss compatibility.
+- Prefer GRU/LSTM over RNN in real applications.
+- Use `Adam` optimizer + `MSELoss()` for regression-style outputs.
+- Start with GRU, then benchmark against LSTM.
