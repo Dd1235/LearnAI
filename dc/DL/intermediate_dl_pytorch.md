@@ -668,3 +668,215 @@ print(f"Test MSE: {mse.compute()}")
 - Prefer GRU/LSTM over RNN in real applications.
 - Use `Adam` optimizer + `MSELoss()` for regression-style outputs.
 - Start with GRU, then benchmark against LSTM.
+
+# Multi Input and Multi Output Architectures
+
+# Chapter 4: Multi-input and Multi-output Models in PyTorch
+
+## Why Multi-input?
+- Incorporating multiple types of input (e.g. image + metadata) helps model performance.
+- Used in **multi-modal learning**, **metric learning**, **self-supervised learning**.
+
+---
+
+## Creating Two-input Dataset for Omniglot dataset
+
+Inputs: Hand written character + what language it comes from (one hot encoding)
+
+```python
+from torch.utils.data import Dataset
+from PIL import Image
+
+class OmniglotDataset(Dataset):
+
+# samples are tuples of 3, image, array, labels
+
+    def __init__(self, transform, samples):
+        self.transform = transform
+        self.samples = samples
+
+    def __len__(self):
+        return len(self.samples)
+
+    def __getitem__(self, idx):
+        img_path, alphabet, label = self.samples[idx]
+        img = Image.open(img_path).convert('L') # grayscale
+        img = self.transform(img)
+        return img, alphabet, label
+```
+- Returns 2 inputs: image and alphabet vector, plus label.
+
+---
+
+## Tensor Concatenation
+```python
+torch.cat((x_image, x_alphabet), dim=1)
+```
+- Used to combine feature vectors from both inputs before passing to the classifier.
+
+---
+
+## Two-input Architecture
+```python
+class Net(nn.Module):
+    def __init__(self):
+        super().__init__()
+        self.image_layer = nn.Sequential(
+            nn.Conv2d(1, 16, kernel_size=3, padding=1),
+            nn.MaxPool2d(kernel_size=2),
+            nn.ELU(),
+            nn.Flatten(),
+            nn.Linear(16*32*32, 128)
+        )
+        self.alphabet_layer = nn.Sequential(
+            nn.Linear(30, 8),
+            nn.ELU()
+        )
+        # num classes: 964
+        self.classifier = nn.Sequential(
+            nn.Linear(128 + 8, 964)
+        )
+
+    def forward(self, x_image, x_alphabet):
+        x_image = self.image_layer(x_image)
+        x_alphabet = self.alphabet_layer(x_alphabet)
+        x = torch.cat((x_image, x_alphabet), dim=1)
+        return self.classifier(x)
+```
+
+---
+
+## Training Loop for Multi-input
+
+```python
+net = Net()
+criterion = nn.CrossEntropyLoss()
+optimizer = optim.SGD(net.parameters(), lr=0.01)
+
+for epoch in range(10):
+    for img, alpha, labels in dataloader_train:
+        optimizer.zero_grad()
+        outputs = net(img, alpha)
+        loss = criterion(outputs, labels)
+        loss.backward()
+        optimizer.step()
+```
+
+---
+
+## Why Multi-output?
+- One model predicting multiple targets.
+- **Multi-task learning**, **Multi-label classification**, **Built-in regularization**.
+
+---
+
+## Two-Outupt dataset
+
+```python 
+from torch.utils.data import Dataset
+from PIL import Image
+
+class OmniglotDataset(Dataset):
+    def __init__(self, transform, samples):
+        self.transform = transform
+        self.samples = samples
+
+    def __len__(self):
+        return len(self.samples)
+
+    def __getitem__(self, idx):
+        # Each sample contains: (image_path, alphabet_label, character_label)
+        img_path, alphabet_label, character_label = self.samples[idx]
+        img = Image.open(img_path).convert('L')  # Convert to grayscale
+        img = self.transform(img)
+        return img, alphabet_label, character_label
+```
+---
+
+## Two-output Architecture
+```python
+class Net(nn.Module):
+    def __init__(self, num_alpha, num_char):
+        super().__init__()
+        self.image_layer = nn.Sequential(
+            nn.Conv2d(1, 16, kernel_size=3, padding=1),
+            nn.MaxPool2d(kernel_size=2),
+            nn.ELU(),
+            nn.Flatten(),
+            nn.Linear(16*32*32, 128)
+        )
+        self.classifier_alpha = nn.Linear(128, num_alpha)
+        self.classifier_char = nn.Linear(128, num_char)
+
+    def forward(self, x):
+        x_image = self.image_layer(x)
+        output_alpha = self.classifier_alpha(x_image)
+        output_char = self.classifier_char(x_image)
+        return output_alpha, output_char
+```
+
+---
+
+## Multi-output Training Loop
+
+```python
+for epoch in range(10):
+    for images, labels_alpha, labels_char in dataloader_train:
+        optimizer.zero_grad()
+        outputs_alpha, outputs_char = net(images)
+        loss_alpha = criterion(outputs_alpha, labels_alpha)
+        loss_char = criterion(outputs_char, labels_char)
+        loss = loss_alpha + loss_char
+        loss.backward()
+        optimizer.step()
+```
+
+---
+
+## Evaluation of Multi-output Models
+```python
+acc_alpha = Accuracy(task="multiclass", num_classes=30)
+acc_char = Accuracy(task="multiclass", num_classes=964)
+
+net.eval()
+with torch.no_grad():
+    for images, labels_alpha, labels_char in dataloader_test:
+        out_alpha, out_char = net(images)
+        _, pred_alpha = torch.max(out_alpha, 1)
+        _, pred_char = torch.max(out_char, 1)
+        acc_alpha(pred_alpha, labels_alpha)
+        acc_char(pred_char, labels_char)
+
+print(f"Alphabet: {acc_alpha.compute()}")
+print(f"Character: {acc_char.compute()}")
+```
+
+---
+
+## Weighted Loss for Unequal Importance
+```python
+# Case 1: Hard coded weight
+loss = loss_alpha + loss_char * 2
+
+# Case 2: Weight sum to 1
+loss = 0.33 * loss_alpha + 0.67 * loss_char
+```
+
+---
+
+## When Losses are on Different Scales
+```python
+loss_price = loss_price / torch.max(loss_price)
+loss_quality = loss_quality / torch.max(loss_quality)
+loss = 0.7 * loss_price + 0.3 * loss_quality
+```
+- Normalize before combining if losses use different units (e.g., MSE + CrossEntropy).
+
+---
+
+## Summary
+- Multi-input networks handle different input types (images, metadata).
+- Multi-output networks allow for simultaneous prediction of multiple targets.
+- Concatenate processed features before classification.
+- Balance loss importance with weights or normalization.
+
