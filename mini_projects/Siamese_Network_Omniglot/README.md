@@ -1,6 +1,11 @@
 Attempt at implementing [this](https://www.cs.cmu.edu/~rsalakhu/papers/oneshot1.pdf) paper.
 
+# Current implementation
 
+For the sake of faster training time
+- used a smaller CNN
+- did not implement hyperparameter tuning, used contrasitive loss instead of BCE+L2 regularization
+- did not implemented early stopping, and used smaller epochs
 
 # Attempt at Understanding the paper
 
