@@ -2,6 +2,13 @@ Attempt at implementing [this](https://www.cs.cmu.edu/~rsalakhu/papers/oneshot1.
 
 # Current implementation
 
+A simplified version of the Siamese Network for one-shot image classification on the Omniglot dataset, inspired by Koch et al. (2015). 
+The project:
+- Implements a custom Siamese CNN architecture in PyTorch
+- Trains using contrastive loss to learn similarity-based embeddings
+- Evaluates one-shot 20-way classification accuracy using unseen characters
+- Includes a task sampler, evaluation loop, and accuracy metric matching the paper's setup
+
 For the sake of faster training time
 - used a smaller CNN
 - did not implement hyperparameter tuning, used contrasitive loss instead of BCE+L2 regularization
@@ -9,7 +16,8 @@ For the sake of faster training time
 - used Adam instead of sgd, since paper used sgd with momentum gradually increasing from 0.5 and learning rate decaying by 1% each epoch, also L2 weight decay
 - did not implement affine distortions, just ToTensor() and Resize()
 - did not visualize embeddings with pca or tsne
-
+- used L2 distance metric instead of L1 since that is more common with the loss functions used
+- did not do weight initialization as described in paper
 
 # Result
 
@@ -45,8 +53,7 @@ For image verification, CNN subnetworks since they are good at capturing local s
 
 image (x1) -> CNN -> embedding (f(x1))
 
-CNN used:
-
+### CNN used (this is a mess, refer to figure 4 of paper):
 conv1: kernel size 10x 10, 64 filters, so output 64 feature maps.
 consider 105x105 input, then 105-10+1 = 96x96 (no padding), each feature maps
 + ReLU
@@ -54,42 +61,33 @@ consider 105x105 input, then 105-10+1 = 96x96 (no padding), each feature maps
 doubt: why no padding? isn't it better to give edges also implementing
 
 Max Pool1 : 64@2x2 so 48x48 output
-
 Conv2 128 filters, 7x7, so 48-7+1, 42x42 feature maps
 + ReLU
-
 MaxPool2: 64@2x2, so output 21x21 (how 64 should be 128??)
-
 Conv3 + relu : 128 @ 4x4 so 18x18 output
-
 MaxPool3 64@2x2 9x9
-
 Conv4 + relu 256@ 4x4 so 6x6
-
 Faltten 256x6x6 = 9216
-
 FC layer projects to lower dimension
-
-
 fully connected + sigmoid, L1 siamese dist 
-
 L1 distance: element wise absolute differnce between two vectors
-
-
 feature fector 4096,
 fully connected + sigmoid ( to get 0 or 1)
 output 1x1
 
 RELU is element wise, max(0,x)
 
-(this is a mess, refer to figure 4 of paper)
-
+### Loss
 We use cross-entropy loss (for binary classification)
 There is an L2 regularization term (weight decay) that is added to cross entropy loss to get total loss to prevent overfitting by penalization large weights
+
+## Weight Initialization
 
 Intialize all weights in cnn from normal distributoin wtih zero mean and 0.001 standard deviation. Biases - N(0.5, 0.001). 
 FC - same biases, but weights N(0, 0.2), so larger standard
 deviation
+
+## Hyperparameters
 
 Learning rate: wnew = wold - $ \eta $ * gradient
 
@@ -100,7 +98,9 @@ With momentum there is a velocity term, velocity accumulates previous gradients,
 
 velocity = μ·v - η·grad, then w = w + velocity
 
-Each network - maximum 20o epochs, monitored one-shot  alidation error on a set of 320 one-shot learning tasks generated randomly 
+## Other stuff
+
+Each network - maximum 20 epochs, monitored one-shot  validation error on a set of 320 one-shot learning tasks generated randomly 
 
 Early stopping: if validation error did not decrease for 20 epochs, stopped and used the parameters of the model at teh best epoch according to one-shot validation error.
 
