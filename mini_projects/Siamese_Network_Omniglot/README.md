@@ -1,5 +1,8 @@
 Attempt at implementing [this](https://www.cs.cmu.edu/~rsalakhu/papers/oneshot1.pdf) paper.
 
+# MNIST dataset
+
+Implementing for mnist dataset to reduce the time
 
 
 # Attempt at Understanding the paper
