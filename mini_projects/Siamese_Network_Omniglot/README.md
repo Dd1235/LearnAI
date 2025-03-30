@@ -5,7 +5,21 @@ Attempt at implementing [this](https://www.cs.cmu.edu/~rsalakhu/papers/oneshot1.
 For the sake of faster training time
 - used a smaller CNN
 - did not implement hyperparameter tuning, used contrasitive loss instead of BCE+L2 regularization
-- did not implemented early stopping, and used smaller epochs
+- did not implemented early stopping, and used smaller epochs (5)
+- used Adam instead of sgd, since paper used sgd with momentum gradually increasing from 0.5 and learning rate decaying by 1% each epoch, also L2 weight decay
+- did not implement affine distortions, just ToTensor() and Resize()
+- did not visualize embeddings with pca or tsne
+
+
+# Result
+
+One shot 20 way accuracy is 80%
+
+That is during the testing time, you are given 1 query image, and 1 example each from 20 differnt classes (support set), 
+it has to pick one that is most similar to.
+Training is done on characters different from what it sees here, where it learns how to compare two images.
+
+
 
 # Attempt at Understanding the paper
 
@@ -17,7 +31,9 @@ doubt: so a vanilla siamese network can't find new classes? Or you have a thresh
 doubt: say A and ß (German alphabet), then B would be misclassified as German alphabet is it?
 doubt: how would these models work out when languages have similar scripts? Telugu Kannada, or English German French Spanish etc.
 
-Understanding: instead of learning what characterizes a class, you compare how similar the image is to existing images to determine if the two images are of the same class
+Understanding: 
+    - instead of learning what characterizes a class, you compare how similar the image is to existing images to determine if the two images are of the same class
+    - It is different from multiclass classification. If you train it on apples and oranges, it will still be able to put together two bananas while testing.
 
 Siamese neural networks: type of nn designed to determine if two inputs are similar
 
