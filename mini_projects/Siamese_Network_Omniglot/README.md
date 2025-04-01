@@ -8,7 +8,6 @@ Siamese networks consist of twin neural networks/ towers with same weights and a
 
 So say you have a bunch of images of apples and oranges, a multi class classifier would learn what an apple/orange is supposed to look like. But the siamese network will learn a way to compare the images, such that two apples get a higher similarity score, and an apple and an orange lower. Now during testing, if given some images, of apples, and oranges, and a query image of apple, it will tell you that the query image falls under the same class as the apple image. Something to be noted is that, now if I give it an image of an apple, orange, and banana, and query with a banana image, it would tell me that the query comes under the same class as the banana.
 
-Now if you 
 
 # Siamese Network for One-Shot Classification on Omniglot 
 
