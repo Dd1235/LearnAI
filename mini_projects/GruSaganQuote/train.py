@@ -2,6 +2,7 @@ import torch
 import torch.nn as nn
 from model.gru_model import CharGRU
 from torch.utils.data import DataLoader, TensorDataset
+from tqdm import tqdm
 from utils import *
 
 # Parameters
@@ -38,15 +39,16 @@ criterion = nn.CrossEntropyLoss()
 for epoch in range(epochs):
     model.train()
     total_loss = 0
-    for batch_x, batch_y in loader:
+    for batch_x, batch_y in tqdm(loader, desc=f"Epoch {epoch+1}/{epochs}"):
         batch_x, batch_y = batch_x.to(device), batch_y.to(device)
         hidden = model.init_hidden(batch_x.size(0)).to(device)
+
         optimizer.zero_grad()
         output, hidden = model(batch_x, hidden)
         loss = criterion(output, batch_y.view(-1))
         loss.backward()
         optimizer.step()
         total_loss += loss.item()
-    print(f"Epoch {epoch+1}/{epochs} | Loss: {total_loss/len(loader):.4f}")
+    print(f"\nEpoch {epoch+1}/{epochs} | Loss: {total_loss/len(loader):.4f}")
 
 torch.save(model.state_dict(), "sagan_gru.pth")

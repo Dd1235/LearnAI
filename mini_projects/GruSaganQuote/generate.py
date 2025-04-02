@@ -22,7 +22,7 @@ def generate(model, start, char2idx, idx2char, length=300, temperature=1.0):
 
 
 # Load mappings
-text = load_and_clean_text("data/carl_sagan_quotes.txt")
+text = load_and_clean_text("carl_sagan_quotes.txt")
 char2idx, idx2char = create_char_mappings(text)
 
 # Load model
