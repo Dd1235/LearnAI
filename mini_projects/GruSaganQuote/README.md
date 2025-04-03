@@ -1,5 +1,3 @@
-
-```markdown
 # Carl Sagan GRU Quote Generator
 
 A character-level neural text generation model trained to emulate the writing style of Carl Sagan, using a Gated Recurrent Unit (GRU). Built from scratch in PyTorch, with custom preprocessing and temperature-based sampling.
@@ -79,4 +77,23 @@ See `gru_generate.ipynb`
 `get_sagan_quotes.py` - get Carl Sagan quotes from wikiquote using the wikiquote library
 
 PS if using conda, you cannot install the library, use pip, while using pip to make sure it installs it in your conda env that is activated run `python -m pip install wikiquote`
+
+
+---
+
+## Explanation
+
+- RNNs have a short term memory problem
+- GRU was invented in 2014
+- GRU combines the Long memory and short memory state
+- It has two gates, update date, and reset gate
+- Update gate knows how much of past memory to retain
+- Reset gate knows how much of memory to forget
+- Hadamard product (element wise)
+- LSTM is more accurate on longer sequences, less efficient
+
+- `hidden_size` : size of gru's memory, bigger gives better memory of context
+- `embedding_dim` - size of char vector, should match `hidden_size` for simplicity
+- `temperature` controls the randomness in output
+
 
