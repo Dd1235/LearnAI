@@ -705,18 +705,31 @@ for _ in range(5):
 
 ## Pre-trained Models: GPT-2 and T5
 
+Pre-trained models:
+- trained on extensive datasets + high performance
+- high computational cost + limited customization options
+
+- hugging face + pytroch
+
 ### GPT-2 for Text Generation
 
 ```python
 from transformers import GPT2Tokenizer, GPT2LMHeadModel
 
-tokenizer = GPT2Tokenizer.from_pretrained('gpt2')
+tokenizer = GPT2Tokenizer.from_pretrained('gpt2') 
 model = GPT2LMHeadModel.from_pretrained('gpt2')
 
-seed_text = "Once upon a time"
+seed_text = "Once upon a time" # story's opening Line 
+
+# tensor in pytorch format
 input_ids = tokenizer.encode(seed_text, return_tensors='pt')
 
+# temperature: randomness of the output
+# prevents consecutive word repetition
+# pads if less than 40
 output = model.generate(input_ids, max_length=40, temperature=0.7, no_repeat_ngram_size=2, pad_token_id=tokenizer.eos_token_id)
+
+
 generated_text = tokenizer.decode(output[0], skip_special_tokens=True)
 print(generated_text)
 ```
@@ -731,16 +744,28 @@ model = T5ForConditionalGeneration.from_pretrained("t5-small")
 
 input_prompt = "translate English to French: 'Hello, how are you?'"
 input_ids = tokenizer.encode(input_prompt, return_tensors="pt")
+
+# accomodate longer translation if needed
 output = model.generate(input_ids, max_length=100)
 generated_text = tokenizer.decode(output[0], skip_special_tokens=True)
 print("Generated text:", generated_text)
 ```
-
+- GPT 2: text generation
+- DistilGPT-2: smaller
+- BERT: text calssification question answering
+- T5: language translation, summarization
 ---
 
 ## Evaluation Metrics for Text Generation
 
-### BLEU Score
+- standard metrics fall short
+
+### BLEU Score (Bilingual Evaluation Understudy)
+
+- checks for the occurence of n get_feature_names_out
+- n grams: consecute n word phrases in the sentence
+- more the generated n grams match reference, higher the score
+
 
 ```python
 from torchmetrics.text import BLEUScore
@@ -753,7 +778,16 @@ bleu_score = bleu(generated_text, real_text)
 print("BLEU Score:", bleu_score.item())
 ```
 
-### ROUGE Score
+### ROUGE Score (Recall-oreinted Understudy for Gisting Evaluation)
+
+- compares a generated text to a reference text
+- ROUGE-N: considers overlapping n-grams in both texts
+- ROUGE-L: looks at the LCS between the texts
+
+- Route metrics:
+    - F-measure: Harmonic mean of precision and reecall
+    - Precison: matches of n-grams in generated text within the reference text
+    - Recall: matches of n-grams in reference text within the generated text
 
 ```python
 from torchmetrics.text import ROUGEScore
@@ -765,6 +799,11 @@ rouge = ROUGEScore()
 rouge_score = rouge([generated_text], [[real_text]])
 print("ROUGE Score:", rouge_score)
 ```
+
+### Considerations and limitations
+
+- evaluate word presence not semantic understanding
+- sensitive to length
 
 ---
 
@@ -781,3 +820,139 @@ print("ROUGE Score:", rouge_score)
 ## Summary
 
 to be done
+
+# Chapter 4: Advanced Topics in Deep Learning for Text with PyTorch
+
+## Transfer Learning
+
+### What is it?
+Transfer learning involves reusing a pretrained model on a new but related task. Instead of training a model from scratch:
+- Load a pretrained model like BERT.
+- Fine-tune on your specific dataset.
+
+### Why it's useful:
+- Reduces training time
+- Needs less data
+- Learns from general linguistic knowledge
+
+---
+
+## Pretrained Model: BERT
+
+- **BERT**: Bidirectional Encoder Representations from Transformers
+- Learns context in both directions
+- Useful for classification, question answering, etc.
+
+### Example Code
+```python
+texts = ["I love this!", "This is terrible.", "Amazing experience!", "Not my cup of tea."]
+labels = [1, 0, 1, 0]
+
+from transformers import BertTokenizer, BertForSequenceClassification
+import torch
+
+tokenizer = BertTokenizer.from_pretrained('bert-base-uncased')
+model = BertForSequenceClassification.from_pretrained('bert-base-uncased', num_labels=2)
+
+inputs = tokenizer(texts, padding=True, truncation=True, return_tensors="pt", max_length=32)
+inputs["labels"] = torch.tensor(labels)
+```
+
+---
+
+### Fine-tuning
+```python
+optimizer = torch.optim.AdamW(model.parameters(), lr=1e-5)
+model.train()
+
+for epoch in range(1):
+    outputs = model(**inputs)
+    loss = outputs.loss
+    loss.backward() # find gradients
+    optimizer.step() # weights adjusted
+    optimizer.zero_grad() # gradients reset
+```
+
+### Evaluation
+```python
+text = "I had an awesome day!"
+input_eval = tokenizer(text, return_tensors="pt", truncation=True, padding=True, max_length=128)
+outputs_eval = model(**input_eval)
+
+pred = torch.nn.functional.softmax(outputs_eval.logits, dim=-1)
+label = 'positive' if torch.argmax(pred) > 0 else 'negative'
+print(f"Sentiment: {label}")
+```
+
+---
+
+## Transformers for Text
+
+- Learn relationships across all words (global context)
+- Avoid sequential bottlenecks of RNNs
+
+### Components
+- Encoder: encodes input
+- Decoder: (used in generation)
+- Multi-head attention
+- Positional encodings
+- Feed-forward networks
+
+---
+
+## Building Transformer Encoder
+
+```python
+import torch.nn as nn
+import torch.optim as optim
+
+class TransformerEncoder(nn.Module):
+    def __init__(self, embed_size, heads, num_layers, dropout):
+        super().__init__()
+        self.encoder = nn.TransformerEncoder(
+            nn.TransformerEncoderLayer(d_model=embed_size, nhead=heads),
+            num_layers=num_layers
+        )
+        self.fc = nn.Linear(embed_size, 2)
+
+    def forward(self, x):
+        x = self.encoder(x)
+        x = x.mean(dim=1)
+        return self.fc(x)
+```
+
+---
+
+## Attention Mechanism
+
+- Focuses on important tokens in the sequence.
+- Helps with resolving ambiguity.
+- Self-attention relates words to each other.
+- Multi-head attends in multiple perspectives.
+
+---
+
+## Adversarial Attacks on Text Models
+
+- FGSM: uses gradient sign to flip predictions
+- PGD: multiple FGSM steps
+- C&W: minimizes detection
+
+### Defense
+- Adversarial training
+- Gradient masking
+- Ensemble models
+- Data augmentation
+
+---
+
+## Tools
+- [Adversarial Robustness Toolbox](https://adversarial-robustness-toolbox.readthedocs.io)
+
+---
+
+## Summary 
+
+to be done
+
+---
