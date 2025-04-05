@@ -266,3 +266,9 @@ GRUs are simpler (no separate cell state), but LSTMs are:
 Which can be useful when you're **thinking in multiple stages** over a task.
 
 ---
+
+# Code
+
+## Dataloaders and datasets
+
+- need to load and process efficiently
