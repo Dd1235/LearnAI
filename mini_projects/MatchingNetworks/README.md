@@ -1,3 +1,80 @@
+
+# Matching Networks for Few-Shot Learning
+
+## Model Architecture
+
+This implementation follows the paper *"Matching Networks for One Shot Learning"* (Vinyals et al., 2016):
+
+- **Embedding Network**:  
+  A shared CNN `f(x)` and `g(x)` maps both support and query images to a common embedding space:
+  - 3 convolutional blocks with:
+    - `Conv2d → ReLU → BatchNorm2d → MaxPool2d`
+    - Output flattened and passed to a `Linear(576 → D)` layer  
+  - Output dimension (`D`) = 64
+
+- **Support Set Encoder**:  
+  A bidirectional LSTM over the support embeddings to generate **full-context support embeddings** (`g'(x)`)
+
+- **Query Encoder**:  
+  An attention LSTM takes the query embedding and attends over the support set to produce a **context-aware query** embedding
+
+- **Prediction**:  
+  Classification is done using soft nearest neighbors via **cosine similarity**:
+  \[
+  \hat{y} = \sum_i a(x̂, x_i) y_i
+  \]
+  where \( a(x̂, x_i) \) is attention over support examples.
+
+---
+
+##  Training Configuration (will add with multiple configurations later)
+- **Dataset**: Omniglot (`background=True` for training, `background=False` for testing)
+- **Train loop**: Few-shot episode training using episodic data sampling
+- **Loss Function**: Cross-entropy 
+- **Optimizer**: Adam with `lr=1e-3`
+- **Epochs**: 10  
+- **Episodes per Epoch**: 1000  
+- **Batch Size**: 1
+- **Device**: GPU (Free on Colab)
+
+---
+
+## Evaluation Setup
+
+We evaluate the model on **N-way K-shot** classification using randomly sampled episodes.
+
+### Current Experiment(Testing):
+
+| Metric       | Setting                  |
+|--------------|--------------------------|
+| Dataset      | Omniglot (test split)    |
+| N-way        | 5                        |
+| K-shot       | 1                        |
+| Queries/class| 1                        |
+| Episodes     | 600                      |
+
+### Results:
+
+| Metric       | Value         |
+|--------------|---------------|
+| Accuracy     | **69.13%**    |
+| Avg. Loss    | **1.4885**    |
+| Baseline     | 20.00% (random guess) |
+
+>  The model learns to generalize significantly better than random with only 1-shot supervision.
+
+---
+
+## Future Work / Configs
+
+This repository is modular — can experiment by changing:
+- `N-way`, `K-shot`, or number of query images
+- Enable/disable Full Context Embedding (`use_fce=False`)
+- Try deeper CNN backbones for embeddings
+- Swap cosine similarity with learned similarity
+- Test other datasets like miniImageNet
+
+
 # Notes on the paper [Matching Networks](https://proceedings.neurips.cc/paper_files/paper/2016/file/90e1357833654983612fb05e3ec9148c-Paper.pdf)
 
 This paper is from 2017. (This feels crazy, it is technically 8 years old as of now but just the fact that you go from learning things from 500 years back to maybe a 100 years back for just the recent decade)
