@@ -267,8 +267,12 @@ Which can be useful when you're **thinking in multiple stages** over a task.
 
 ---
 
-# Code
+# More papers to checkout  (unrelated to this project)
 
-## Dataloaders and datasets
+ASR paper
 
-- need to load and process efficiently
+## combining with RL 
+
+https://arxiv.org/abs/1611.02779
+https://arxiv.org/abs/1703.03400
+https://arxiv.org/abs/1903.08254
