@@ -17,6 +17,7 @@ For Logistic Regression
 - y = sigmoid(wx + b)
 - P(Y=y | X=x) = y * P(Y=1 | X=x) + (1-y) * P(Y=0 | X=x)
 - So the likelihood function directly leads to the log loss / BCE loss
+- gives you the probability that y = 1 given x (conditional probability)
 
 - Another reason is wanting a convex function where we do not get stuck in local minima.
 - For logistic regression, consider y = 0 and y = 1 and plot both the loss functions. Notice that if you use MSE vs log loss, we penalize the misclassifications much more. The gradient is steeper for log loss. For regression we want smaller gradient, y = 10 yhat = 8 is okay. It should not be penalized too much. But for classificaiton y = 1, yhat = 0 is a big problem. So we want to penalize it more. Log loss does that.
