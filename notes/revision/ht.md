@@ -1,0 +1,3 @@
+- Other than Adam consider SGD + Nesterov Momentum too.
+- Go through [https://cs231n.github.io/neural-networks-3/](again) to get better understanding.
+- Also go through Optuna 
