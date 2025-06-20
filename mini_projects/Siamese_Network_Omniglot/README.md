@@ -1,7 +1,7 @@
 Attempt at implementing [this](https://www.cs.cmu.edu/~rsalakhu/papers/oneshot1.pdf) paper.
 
 This is a work on progress, I will slowly remove the simplifications based from the paper.
-
+[deleted the dataset from here]
 # Siamese Networks Intuition
 
 Siamese networks consist of twin neural networks/ towers with same weights and architecutre(CNN for image classification). If you have two images you pass each through each of the towers to generate embeddings. Then you use a fully connected layer, and, some distance measure to get the similarity between the two images. So your neural network essentially learns a "similarity function", rather than what makes up a class.
