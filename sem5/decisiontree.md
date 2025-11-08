@@ -1,0 +1,11 @@
+- x0 and x1
+- plot as dots
+- not linearly separable
+- binary tree that recursively splits the dataset, till pure leaf nodes, i.e all points in the leaf node belong to the same class
+- watch [this](https://www.youtube.com/watch?v=ZVR2Way4nwQ)
+- how to decide optimal splits?
+- information theory, choose split that maximizes information gain
+- entropy : measure of information contained in a state
+- IG = E(parent) - weighted avg of E(children)
+- Does not backtrack, greedy problem
+- doesn't guarantee optimal solution
